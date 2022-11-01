@@ -11,7 +11,8 @@ namespace SenimentAnalyzerServer
     {
         static void Main(string[] args)
         {
-            LexiconLoader.Load();
+            //LexiconLoader.Load();
+            SQLConnection.AttemptSQLConnection();
 
             TcpListener server = new TcpListener(System.Net.IPAddress.Any, 25555);
             server.Start();

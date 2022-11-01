@@ -10,9 +10,9 @@ namespace SenimentAnalyzerServer
     class SQLConnection
     {
         private static string server = "localhost";
-        private static string userid = "CMBD";
+        private static string userid = "sent";
         private static string password = "password";
-        private static string database = "Reviews";
+        private static string database = "review";
 
         private static MySqlConnection con;
         private static MySqlCommand cmd;
@@ -24,29 +24,31 @@ namespace SenimentAnalyzerServer
             cmd = new MySqlCommand();
             cmd.Connection = con;
 
-            cmd.CommandText = @"CREATE TABLE IF NOT EXISTS login(sId int , sName varchar(40), sUser varchar(20), sPassword varchar(255), primary key(sUser, sID)";
+            cmd.CommandText = "CREATE TABLE IF NOT EXISTS login(sId int , sName varchar(40), sUser varchar(20), sPassword varchar(255), primary key(sUser, sID))";
             cmd.ExecuteNonQuery();
 
-            cmd.CommandText = @"CREATE TABLE IF NOT EXISTS reviews(sentVal int, numRev int, numPos int, numNeg int, adjustedRating float, confidence float, UId int, ASINID varchar(10), IDDate Date, foreign key(UId) references Login(sId), primary key(UId,ASINID))";
+            cmd.CommandText = @"CREATE TABLE IF NOT EXISTS reviews(sentVal int, numRev int, numPos int, numNeg int, adjustedRating float, confidence float, UId int, ASINID varchar(10), IDDate Date, foreign key(UId) references login(sID), primary key(UId,ASINID))";
             cmd.ExecuteNonQuery();
         }
 
-        public static bool AttemptSQLConnection(string username, string password)
+        public static bool AttemptSQLConnection()
         {
-            string cs = @"server=" + server + ";userid=" + username + "; password=" + password + ";database=" + database;
-
+            string cs = "server=" + server + ";uid=" + userid + ";pwd=" + password + ";database=" + database;
+            //string myConnectionString = "server=127.0.0.1;uid=sent;" + "pwd=password;database=review";
+            //string cs = string.Format("Server={0}; database={1}; UID={2}; password={3}", server, database, userid, password);
             con = new MySqlConnection(cs);
-
             try
             {
                 con.Open();
+                Console.WriteLine("Connected to SQL Database Initializing Tables:");
                 InitializeDatabase();
-
+                Console.WriteLine("Tables Initialized");
                 return true;
             }
-            catch (MySqlException)
+            catch (MySqlException e)
             {
                 Console.WriteLine("Error: Unable to connect to SQL database. Check login information and server status.");
+                Console.WriteLine(e.ToString());
                 return false;
             }
         }
@@ -70,7 +72,7 @@ namespace SenimentAnalyzerServer
                 rdr.Read();
                 user.userID = rdr.GetInt32("sID");
                 user.username = rdr.GetString("sUser");
-
+                user.password = rdr.GetString("sPassword");
                 rdr.Close();
             }
             else
