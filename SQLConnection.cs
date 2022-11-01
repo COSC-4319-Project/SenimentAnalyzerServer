@@ -24,7 +24,7 @@ namespace SenimentAnalyzerServer
             cmd = new MySqlCommand();
             cmd.Connection = con;
 
-            cmd.CommandText = "CREATE TABLE IF NOT EXISTS login(sId int , sName varchar(40), sUser varchar(20), sPassword varchar(255), primary key(sUser, sID))";
+            cmd.CommandText = "CREATE TABLE IF NOT EXISTS login(sId int AUTO_INCREMENT, sName varchar(40), sUser varchar(20), sPassword varchar(255), primary key(sUser, sID))";
             cmd.ExecuteNonQuery();
 
             cmd.CommandText = @"CREATE TABLE IF NOT EXISTS reviews(sentVal int, numRev int, numPos int, numNeg int, adjustedRating float, confidence float, UId int, ASINID varchar(10), IDDate Date, foreign key(UId) references login(sID), primary key(UId,ASINID))";
@@ -85,23 +85,47 @@ namespace SenimentAnalyzerServer
 
         public static void CreateUser(User user)
         {
-            //SQL DATABASE: Add User info to database 
+            cmd.CommandText = "INSERT INTO login(sName, sUser, sPassword) VALUES ('" + user.name + "','" + user.username + "','" + user.password + "')";
+            cmd.ExecuteNonQuery();
         }
 
-        public static void UpdateUser(User user, string newPassword)
+        public static void UpdateUser(string username, string newPassword)
         {
-            //SQL DATABASE: Update password entry in database
+            cmd.CommandText = "UPDATE login Set sPassword='" + newPassword + "' WHERE tagNum=";
+            cmd.ExecuteNonQuery();
         }
 
-        public static HistoryRec GetHistory(string productID)
+        //reviews(sentVal int, numRev int, numPos int, numNeg int, adjustedRating float, confidence float, UId int, ASINID varchar(10), IDDate Date, foreign key(UId) references login(sID), primary key(UId,ASINID))
+        public static HistoryRec GetHistoryRec(string productID)
         {
             HistoryRec rec = new HistoryRec();
+            cmd.CommandText = "SELECT * FROM reviews WHERE ASINID=" + productID;
+            rdr = cmd.ExecuteReader();
 
-            //SQL DATABASE: Get History info from database for product id if found;
-
-            //if not found
-            rec.numRev = -1; //To indicate no record found
+            if (rdr.HasRows)
+            {
+                rec.asinID = rdr.GetString("ASINID");
+                rec.sentimentVal = rdr.GetInt32("sentVal");
+                rec.numRev = rdr.GetInt32("numRev");
+                rec.numPos = rdr.GetInt32("numPos");
+                rec.numNeg = rdr.GetInt32("numNeg");
+                rec.adjustedRating = rdr.GetFloat("adjustedRating");
+                rec.confidence = rdr.GetFloat("confidence");
+                rec.uID = rdr.GetInt32("UId");
+                rec.dateAnalyzed = rdr.GetDateTime("IDDate");
+            }
+            else //if not found
+            {
+                rec.numRev = -1; //To indicate no record found
+            }
+                
             return rec;
+        }
+
+        public static void CreateHistoryRec(HistoryRec rec)
+        {
+            cmd.CommandText = "INSERT INTO reviews(sentVal, numRev, numPos, numNeg, adjustedRating, confidence, UId, ASINID, IDDate) VALUES ('" + rec.sentimentVal + "','" + rec.numRev + "','" + rec.numPos + "','" + rec.numNeg + "','" + rec.adjustedRating + "','" + rec.confidence + "','" + rec.uID + "','" + rec.asinID + "','" + rec.dateAnalyzed + "')";
+            cmd.ExecuteNonQuery();
         }
 
         public static void DeleteUser(string userName)
@@ -126,6 +150,7 @@ namespace SenimentAnalyzerServer
         public int numPos;
         public float confidence;
         public float adjustedRating;
+        public int uID; 
         public DateTime dateAnalyzed;
     }
 }
