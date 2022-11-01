@@ -134,13 +134,13 @@ namespace SenimentAnalyzerServer
         {
             byte[] buffer = new byte[bufferSize];
             int i = client.Client.Receive(buffer);
-            return System.Text.Encoding.ASCII.GetString(buffer);
+            return System.Text.Encoding.ASCII.GetString(buffer, 0, i);
         }
         static string ReciveMessageUTF8(TcpClient client, int bufferSize)
         {
             byte[] buffer = new byte[bufferSize];
             int i = client.Client.Receive(buffer);
-            return System.Text.Encoding.UTF8.GetString(buffer);
+            return System.Text.Encoding.UTF8.GetString(buffer,0,i);
         }
     }
 }
