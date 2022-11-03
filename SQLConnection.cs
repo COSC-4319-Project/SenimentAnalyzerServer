@@ -1,4 +1,7 @@
-﻿using System;
+﻿//Tilly Dewing Fall 2022
+//Software Engineering 4319
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -52,13 +55,6 @@ namespace SenimentAnalyzerServer
                 return false;
             }
         }
-        public static void CloseConnection()
-        {
-            if (con != null)
-            {
-                con.Close();
-            }
-        }
 
 
         public static User GetUser(string username)
@@ -77,9 +73,10 @@ namespace SenimentAnalyzerServer
             }
             else
             {
+                user.userID = -1; //indicate empty rec
                 rdr.Close();
             }
-
+            
             return user;
         }
 
@@ -140,6 +137,14 @@ namespace SenimentAnalyzerServer
         public string username;
         public string password;
         public string name;
+
+        public User(string userName, string password, int userID, string name)
+        {
+            this.username = userName;
+            this.password = password;
+            this.userID = userID;
+            this.name = name;
+        }
     }
     struct HistoryRec
     {

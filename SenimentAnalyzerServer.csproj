@@ -163,6 +163,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="LexiconLoader.cs" />
+    <Compile Include="Login.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SQLConnection.cs" />

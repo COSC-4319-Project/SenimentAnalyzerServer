@@ -1,4 +1,7 @@
-﻿using System;
+﻿//Tilly Dewing Fall 2022
+//Software Engineering 4319
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,10 +19,7 @@ namespace SenimentAnalyzerServer
 
         public static void HandleMessage(TcpClient client)
         {
-            //Recive message from client;
-            byte[] buffer = new byte[bufferSize];
-            int i = client.Client.Receive(buffer);
-            string message = System.Text.Encoding.ASCII.GetString(buffer);
+            string message = ReciveMessage(client, bufferSize);
             string[] splitMes = message.Split('|');
 
             //Generate correct response
@@ -40,7 +40,7 @@ namespace SenimentAnalyzerServer
                 case "LGN": //Logon attempt
                     response = LoginResponse(splitMes);
                     break;
-                case "REQ": //History Request
+                case "HIS": //History Request
                     response = RequestResponse(splitMes);
                     break;
                 case "UAP": //Password Change
@@ -60,14 +60,17 @@ namespace SenimentAnalyzerServer
                 SendMessage(response,client);
             }
         }
-       //Message Responses                                                      message                    description
-        static string LexiconVerResponse(string[] message)                 // LEX|VER|lexNum - Client request version number of lexicon
+
+        //Message Responses 
+        // LEX|VER|lexNum - Client request version number of lexicon
+        static string LexiconVerResponse(string[] message)                 
         {
             int lexNum = int.Parse(message[2]);
             return LexiconLoader.listVers[lexNum].ToString();
         }
 
-        static void LexiconReqResponse(string[] message, TcpClient client) // LEX|REQ|lexNum - Client requseted contents of Lexicon
+        // LEX|REQ|lexNum - Client requseted contents of Lexicon
+        static void LexiconReqResponse(string[] message, TcpClient client)
         {
             int lexNum = int.Parse(message[2]);
             int len = LexiconLoader.wordLists[lexNum].Length; //message length
@@ -85,35 +88,72 @@ namespace SenimentAnalyzerServer
             }
         }
 
-        static string LoginResponse(string[] message)                      // LGN|userName
+        // LGN|userName|password - Login
+        static string LoginResponse(string[] message)                      
         {
-            User user = SQLConnection.GetUser(message[1]); //Grab user record from database
-            return user.password; //return salted hash for comparison
+
+            if (Login.CheckLogin(message[1], message[2]))
+            {
+                User user = SQLConnection.GetUser(message[1]); //Grab user record from database
+                return user.userID + "|" + user.name; //Return User ID and name
+            }
+            else
+            {
+                return "INVALID";
+            }
 
         }
 
+        //ACT|userName|password|name - create account
         static string CreateAccountResponse(string[] message)   
-        { 
-            return "";
+        {
+            if (Login.CreateAccount(message[1], message[2], message[3]))
+            {
+                return "VALID";
+            }
+            else
+            {
+                return "INVALID";
+            }
 
         }
 
+        //UAP|userName|curPassword|newPassword - update password
         static string UpdateAccountResponse(string[] message)
         {
-            return "";
-
+            if (Login.ChangePassword(message[1], message[2], message[3]))
+            {
+                return "VALID";
+            }
+            else
+            {
+                return "INVALID";
+            }
         }
 
+        //CMD|DEL|userName
         static string CommandResponse(string[] message)
         {
             return "";
 
         }
 
+        //HIS|asinID - request history for asinID
         static string RequestResponse(string[] message)
-        { 
-            return "";
+        {
+            HistoryRec rec = SQLConnection.GetHistoryRec(message[1]);
 
+            if (rec.numRev > 0)//Valid Record Returned.
+            {
+                if (rec.dateAnalyzed < (DateTime.Today.AddDays(-7)))
+                {
+                    return "0";
+                }
+                //asin|uID|adjRat|sent|numRev|numPos|numNeg|connfidence|dateAnalyzed
+                return rec.asinID + "|" + rec.uID + "|" + rec.adjustedRating + "|" + rec.sentimentVal + "|" + rec.numRev + "|" + rec.numPos + "|" + rec.numNeg + "|" + rec.confidence + "|" + rec.dateAnalyzed;
+            }
+
+            return "0";
         }
 
         static void SendMessage(string message, TcpClient client)
