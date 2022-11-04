@@ -16,12 +16,13 @@ namespace SenimentAnalyzerServer
         public static bool CheckLogin(string username, string password)
         {
             //Grab Stored password from SQL database
-            string storedPswd = SQLConnection.GetUser(username).password;
+            User user = SQLConnection.GetUser(username);
+            
 
-            if (storedPswd.Length > 0) //username in database
+            if (user.userID != -1) //username in database
             {
                 //Convert to byte array
-                byte[] hashBytes = Convert.FromBase64String(storedPswd);
+                byte[] hashBytes = Convert.FromBase64String(user.password);
 
                 //Get Salt (first 16 bytes)
                 byte[] salt = new byte[16];

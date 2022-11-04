@@ -27,10 +27,11 @@ namespace SenimentAnalyzerServer
             cmd = new MySqlCommand();
             cmd.Connection = con;
 
-            cmd.CommandText = "CREATE TABLE IF NOT EXISTS login(sId int AUTO_INCREMENT, sName varchar(40), sUser varchar(20), sPassword varchar(255), primary key(sUser, sID))";
+            cmd.CommandText = "CREATE TABLE IF NOT EXISTS login(sId int NOT NULL AUTO_INCREMENT, sName varchar(40), sUser varchar(20), sPassword varchar(255), primary key(sId))";
+            //Console.WriteLine(cmd.CommandText);
             cmd.ExecuteNonQuery();
 
-            cmd.CommandText = @"CREATE TABLE IF NOT EXISTS reviews(sentVal int, numRev int, numPos int, numNeg int, adjustedRating float, confidence float, UId int, ASINID varchar(10), IDDate Date, foreign key(UId) references login(sID), primary key(UId,ASINID))";
+            cmd.CommandText = @"CREATE TABLE IF NOT EXISTS reviews(sentVal int, numRev int, numPos int, numNeg int, adjustedRating float, confidence float, UId int, asinID varchar(10), IDDate Date, primary key(UId,asinID))";
             cmd.ExecuteNonQuery();
         }
 
@@ -60,7 +61,8 @@ namespace SenimentAnalyzerServer
         public static User GetUser(string username)
         {
             User user = new User();
-            cmd.CommandText = "SELECT * FROM login WHERE sUser=" + username;
+            cmd.CommandText = "SELECT * FROM login WHERE sUser='" + username + "'";
+            Console.WriteLine(cmd.CommandText);
             rdr = cmd.ExecuteReader();
 
             if (rdr.HasRows)
@@ -88,7 +90,8 @@ namespace SenimentAnalyzerServer
 
         public static void UpdateUser(string username, string newPassword)
         {
-            cmd.CommandText = "UPDATE login Set sPassword='" + newPassword + "' WHERE tagNum=";
+            cmd.CommandText = string.Format("UPDATE login SET sPassword='{0}' WHERE sUser='{1}'", newPassword, username);
+            //cmd.CommandText = "UPDATE login Set sPassword='" + newPassword + "' WHERE sUser='" + newPassword + "'";
             cmd.ExecuteNonQuery();
         }
 
@@ -96,12 +99,13 @@ namespace SenimentAnalyzerServer
         public static HistoryRec GetHistoryRec(string productID)
         {
             HistoryRec rec = new HistoryRec();
-            cmd.CommandText = "SELECT * FROM reviews WHERE ASINID=" + productID;
+            cmd.CommandText = string.Format("SELECT * FROM reviews WHERE asinID='{0}'", productID);
+            //cmd.CommandText = "SELECT * FROM reviews WHERE asinID=" + productID;
             rdr = cmd.ExecuteReader();
 
             if (rdr.HasRows)
             {
-                rec.asinID = rdr.GetString("ASINID");
+                rec.asinID = rdr.GetString("asinID");
                 rec.sentimentVal = rdr.GetInt32("sentVal");
                 rec.numRev = rdr.GetInt32("numRev");
                 rec.numPos = rdr.GetInt32("numPos");
@@ -121,7 +125,8 @@ namespace SenimentAnalyzerServer
 
         public static void CreateHistoryRec(HistoryRec rec)
         {
-            cmd.CommandText = "INSERT INTO reviews(sentVal, numRev, numPos, numNeg, adjustedRating, confidence, UId, ASINID, IDDate) VALUES ('" + rec.sentimentVal + "','" + rec.numRev + "','" + rec.numPos + "','" + rec.numNeg + "','" + rec.adjustedRating + "','" + rec.confidence + "','" + rec.uID + "','" + rec.asinID + "','" + rec.dateAnalyzed + "')";
+            cmd.CommandText = string.Format("INSERT INTO reviews(sentVal, numRev, numPos, numNeg, adjustedRating, confidence, UId, ASINID, IDDate) VALUES ('{0}','{1}','{3}','{4}','{5}','{6}','{7}','{8}')", rec.sentimentVal, rec.numRev,rec.numPos,rec.numNeg,rec.adjustedRating,rec.confidence,rec.uID,rec.asinID,rec.dateAnalyzed);
+            //cmd.CommandText = "INSERT INTO reviews(sentVal, numRev, numPos, numNeg, adjustedRating, confidence, UId, ASINID, IDDate) VALUES ('" + rec.sentimentVal + "'," + rec.numRev + "','" + rec.numPos + "','" + rec.numNeg + "','" + rec.adjustedRating + "','" + rec.confidence + "','" + rec.uID + "','" + rec.asinID + "','" + rec.dateAnalyzed + "')";
             cmd.ExecuteNonQuery();
         }
 
