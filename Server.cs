@@ -150,7 +150,7 @@ namespace SenimentAnalyzerServer
                     return "0";
                 }
                 //asin|uID|adjRat|sent|numRev|numPos|numNeg|connfidence|dateAnalyzed
-                return rec.asinID + "|" + rec.uID + "|" + rec.adjustedRating + "|" + rec.sentimentVal + "|" + rec.numRev + "|" + rec.numPos + "|" + rec.numNeg + "|" + rec.confidence + "|" + rec.dateAnalyzed;
+                return rec.asinID + "|" + rec.uID + "|" + rec.adjustedRating + "|" + rec.productName + "|" + rec.numRev + "|" + rec.numPos + "|" + rec.numNeg + "|" + rec.confidence + "|" + rec.dateAnalyzed;
             }
 
             return "0";

@@ -31,7 +31,7 @@ namespace SenimentAnalyzerServer
             //Console.WriteLine(cmd.CommandText);
             cmd.ExecuteNonQuery();
 
-            cmd.CommandText = @"CREATE TABLE IF NOT EXISTS reviews(sentVal int, numRev int, numPos int, numNeg int, adjustedRating float, confidence float, UId int, asinID varchar(10), IDDate Date, primary key(UId,asinID))";
+            cmd.CommandText = @"CREATE TABLE IF NOT EXISTS reviews(numRev int, numPos int, numNeg int, adjustedRating float, confidence float, UId int, asinID varchar(10), IDDate Date, prodName varchar(255), primary key(UId,asinID))";
             cmd.ExecuteNonQuery();
         }
 
@@ -106,7 +106,7 @@ namespace SenimentAnalyzerServer
             if (rdr.HasRows)
             {
                 rec.asinID = rdr.GetString("asinID");
-                rec.sentimentVal = rdr.GetInt32("sentVal");
+                rec.productName = rdr.GetString("prodName");
                 rec.numRev = rdr.GetInt32("numRev");
                 rec.numPos = rdr.GetInt32("numPos");
                 rec.numNeg = rdr.GetInt32("numNeg");
@@ -125,7 +125,7 @@ namespace SenimentAnalyzerServer
 
         public static void CreateHistoryRec(HistoryRec rec)
         {
-            cmd.CommandText = string.Format("INSERT INTO reviews(sentVal, numRev, numPos, numNeg, adjustedRating, confidence, UId, ASINID, IDDate) VALUES ('{0}','{1}','{3}','{4}','{5}','{6}','{7}','{8}')", rec.sentimentVal, rec.numRev,rec.numPos,rec.numNeg,rec.adjustedRating,rec.confidence,rec.uID,rec.asinID,rec.dateAnalyzed);
+            cmd.CommandText = string.Format("INSERT INTO reviews(numRev, numPos, numNeg, adjustedRating, confidence, UId, ASINID, IDDate,prodName) VALUES ('{0}','{1}','{3}','{4}','{5}','{6}','{7}','{8}',)", rec.numRev,rec.numPos,rec.numNeg,rec.adjustedRating,rec.confidence,rec.uID,rec.asinID,rec.dateAnalyzed,rec.productName);
             //cmd.CommandText = "INSERT INTO reviews(sentVal, numRev, numPos, numNeg, adjustedRating, confidence, UId, ASINID, IDDate) VALUES ('" + rec.sentimentVal + "'," + rec.numRev + "','" + rec.numPos + "','" + rec.numNeg + "','" + rec.adjustedRating + "','" + rec.confidence + "','" + rec.uID + "','" + rec.asinID + "','" + rec.dateAnalyzed + "')";
             cmd.ExecuteNonQuery();
         }
@@ -154,7 +154,7 @@ namespace SenimentAnalyzerServer
     struct HistoryRec
     {
         public string asinID;
-        public int sentimentVal;
+        public string productName;
         public int numRev;
         public int numNeg;
         public int numPos;
