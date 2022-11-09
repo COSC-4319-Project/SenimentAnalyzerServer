@@ -23,10 +23,10 @@ namespace SenimentAnalyzerServer
                 case "LEX": //Lexicon Messages
                     switch (splitMes[1])
                     {
-                        case "VER":
+                        case "VER": //Version Request
                             response = LexiconVerResponse(splitMes);
                             break;
-                        case "REQ":
+                        case "REQ": //Contents request
                             LexiconReqResponse(splitMes, client);
                             break;
                     }
@@ -149,7 +149,7 @@ namespace SenimentAnalyzerServer
 
             return "0";
         }
-
+        //Message Functions using Ascii & UTF8 encoding.
         static void SendMessage(string message, TcpClient client)
         {
             byte[] buffer = Encoding.ASCII.GetBytes(message); //Encode string to byte array to be sent

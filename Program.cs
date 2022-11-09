@@ -6,13 +6,14 @@ using System.Net.Sockets;
 
 namespace SenimentAnalyzerServer
 {
-    class Program
+    class Program 
     {
         static void Main(string[] args)
         {
             //LexiconLoader.Load();
             SQLConnection.AttemptSQLConnection();
 
+            //Start tcp server
             TcpListener server = new TcpListener(System.Net.IPAddress.Any, 25555);
             server.Start();
 
@@ -22,7 +23,7 @@ namespace SenimentAnalyzerServer
             Console.ReadLine();
         }
 
-        static void OnClientConnecting(IAsyncResult ar)
+        static void OnClientConnecting(IAsyncResult ar) //asynchronously accept incoming messages and respond acordingly.
         {
             try
             {
