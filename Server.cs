@@ -2,18 +2,12 @@
 //Software Engineering 4319
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using System.Net;
 using System.Net.Sockets;
-using System.IO;
-using MySql.Data.MySqlClient;
 
 namespace SenimentAnalyzerServer
 {
-    class Server
+    class Server //Comunicates lexicon updates and cached history.
     {
         public static int bufferSize = 2048; //2KB buffer size for standard messages
 
