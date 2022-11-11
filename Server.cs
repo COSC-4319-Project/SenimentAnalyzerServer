@@ -35,7 +35,15 @@ namespace SenimentAnalyzerServer
                     response = LoginResponse(splitMes);
                     break;
                 case "HIS": //History Request
-                    response = RequestResponse(splitMes);
+                    switch (splitMes[1])
+                    {
+                        case "SNG": //Version Request
+                            response = RequestResponse(splitMes);
+                            break;
+                        case "ALL": //Contents request
+                            response = AllHistoryResponse(splitMes);
+                            break;
+                    }
                     break;
                 case "UAP": //Password Change
                     response = UpdateAccountResponse(splitMes);
@@ -135,7 +143,7 @@ namespace SenimentAnalyzerServer
         //HIS|asinID - request history for asinID
         static string RequestResponse(string[] message)
         {
-            HistoryRec rec = SQLConnection.GetHistoryRec(message[1]);
+            HistoryRec rec = SQLConnection.GetHistoryRec(message[2]);
 
             if (rec.numRev > 0)//Valid Record Returned.
             {
@@ -149,6 +157,12 @@ namespace SenimentAnalyzerServer
 
             return "0";
         }
+        static string AllHistoryResponse(string[] message)
+        {
+            //HistoryRec[] recs = SQLConnection.GetHistoryRec(message[2]);
+            return "";  
+        }
+
         //Message Functions using Ascii & UTF8 encoding.
         static void SendMessage(string message, TcpClient client)
         {
