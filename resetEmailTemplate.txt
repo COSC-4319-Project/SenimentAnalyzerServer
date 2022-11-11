@@ -1,0 +1,12 @@
+We have recived a request to reset your password
+
+Enter the following code in the reset token field on the reset password page:
+
+Token: {0}
+
+If you didn't make this request please change your password.
+
+Thanks,
+
+ReReview Support
+rereview.4319@gmail.com

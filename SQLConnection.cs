@@ -20,7 +20,7 @@ namespace SenimentAnalyzerServer
             cmd = new MySqlCommand();
             cmd.Connection = con;
 
-            cmd.CommandText = "CREATE TABLE IF NOT EXISTS login(sId int NOT NULL AUTO_INCREMENT, sName varchar(40), sUser varchar(20), sPassword varchar(255), primary key(sId))";
+            cmd.CommandText = "CREATE TABLE IF NOT EXISTS login(sId int NOT NULL AUTO_INCREMENT, sName varchar(50), sUser varchar(20), sPassword varchar(255), primary key(sId))";
             //Console.WriteLine(cmd.CommandText);
             cmd.ExecuteNonQuery();
 

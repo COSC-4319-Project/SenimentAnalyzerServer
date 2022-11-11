@@ -3,6 +3,7 @@
 
 using System;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace SenimentAnalyzerServer
 {
@@ -10,15 +11,20 @@ namespace SenimentAnalyzerServer
     {
         static void Main(string[] args)
         {
-            //LexiconLoader.Load();
-            SQLConnection.AttemptSQLConnection();
+            LexiconLoader.Load();
+            //SQLConnection.AttemptSQLConnection();
+            Login.GetEmailTemplate();
+            Login.GeneratePasswordReset("tilly");
+            //Start Token Management (Clears expired tokens)
+            Thread tokenManagement = new Thread(new ThreadStart(Login.TokenManagement));
+            tokenManagement.Start();
 
             //Start tcp server
             TcpListener server = new TcpListener(System.Net.IPAddress.Any, 25555);
             server.Start();
 
             // Wait for connection...
-            server.BeginAcceptTcpClient(OnClientConnecting, server);
+            //server.BeginAcceptTcpClient(OnClientConnecting, server);
 
             Console.ReadLine();
         }

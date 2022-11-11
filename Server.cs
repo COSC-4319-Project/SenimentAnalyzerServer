@@ -120,6 +120,26 @@ namespace SenimentAnalyzerServer
 
         }
 
+        //ACT|RST|REQ|username
+        static string PassResetTokenReqResponse(string[] message)
+        {
+            if (Login.GeneratePasswordReset(message[3]))
+            {
+                return "Reset Sent";
+            }
+
+            return "Username not found";
+        }
+
+        //ACT|RST|username|token|newPassword
+        static string PassResetResponse(string[] message)
+        {
+            if (Login.ResetPassword(message[2], message[3], message[4]))
+            {
+                return "Password Reset!";
+            }
+            return "Invalid Username or Token";
+        }
         //UAP|userName|curPassword|newPassword - update password
         static string UpdateAccountResponse(string[] message)
         {
