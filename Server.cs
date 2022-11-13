@@ -49,8 +49,6 @@ namespace SenimentAnalyzerServer
                     response = UpdateAccountResponse(splitMes);
                     break;
                 case "ACT": //Create account
-                    Console.WriteLine("Handling Account Request");
-                    Console.WriteLine(message);
                     response = HandleAccountMessage(splitMes);
                     break;
                 case "CMD": //Delete account & other various commands
