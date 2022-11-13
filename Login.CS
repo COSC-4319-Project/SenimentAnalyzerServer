@@ -181,7 +181,7 @@ namespace SenimentAnalyzerServer
         {
             if (FindResetToken(token, username)) //If token is valid
             {
-                SQLConnection.UpdateUser(username, newPassword); //update password
+                SQLConnection.UpdateUser(username, SaltedHash(newPassword)); //update password
                 RemoveResetToken(token); //removed used token
                 return true;
             }

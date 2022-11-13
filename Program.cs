@@ -12,9 +12,9 @@ namespace SenimentAnalyzerServer
         static void Main(string[] args)
         {
             LexiconLoader.Load();
-            //SQLConnection.AttemptSQLConnection();
+            SQLConnection.AttemptSQLConnection();
             Login.GetEmailTemplate();
-            Login.GeneratePasswordReset("tilly");
+
             //Start Token Management (Clears expired tokens)
             Thread tokenManagement = new Thread(new ThreadStart(Login.TokenManagement));
             tokenManagement.Start();
@@ -24,7 +24,7 @@ namespace SenimentAnalyzerServer
             server.Start();
 
             // Wait for connection...
-            //server.BeginAcceptTcpClient(OnClientConnecting, server);
+            server.BeginAcceptTcpClient(OnClientConnecting, server);
 
             Console.ReadLine();
         }

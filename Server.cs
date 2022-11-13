@@ -49,7 +49,9 @@ namespace SenimentAnalyzerServer
                     response = UpdateAccountResponse(splitMes);
                     break;
                 case "ACT": //Create account
-                    response = CreateAccountResponse(splitMes);
+                    Console.WriteLine("Handling Account Request");
+                    Console.WriteLine(message);
+                    response = HandleAccountMessage(splitMes);
                     break;
                 case "CMD": //Delete account & other various commands
                     response = CommandResponse(splitMes);  
@@ -62,7 +64,24 @@ namespace SenimentAnalyzerServer
                 SendMessage(response,client);
             }
         }
-
+        static string HandleAccountMessage(string[] message)
+        {
+            if (message[1] == "RST")
+            {
+                if (message[2] == "REQ")
+                {
+                    return PassResetTokenReqResponse(message);
+                }
+                else
+                {
+                    return PassResetResponse(message);
+                }
+            }
+            else
+            {
+                return CreateAccountResponse(message);
+            }
+        }
         //Message Responses 
         // LEX|VER|lexNum - Client request version number of lexicon
         static string LexiconVerResponse(string[] message)                 
@@ -120,15 +139,15 @@ namespace SenimentAnalyzerServer
 
         }
 
-        //ACT|RST|REQ|username
+        //ACT|RST|REQ|username|
         static string PassResetTokenReqResponse(string[] message)
         {
             if (Login.GeneratePasswordReset(message[3]))
             {
-                return "Reset Sent";
+                return "VALID";
             }
 
-            return "Username not found";
+            return "INVALID";
         }
 
         //ACT|RST|username|token|newPassword
@@ -136,9 +155,9 @@ namespace SenimentAnalyzerServer
         {
             if (Login.ResetPassword(message[2], message[3], message[4]))
             {
-                return "Password Reset!";
+                return "VALID";
             }
-            return "Invalid Username or Token";
+            return "INVALID";
         }
         //UAP|userName|curPassword|newPassword - update password
         static string UpdateAccountResponse(string[] message)

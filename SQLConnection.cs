@@ -64,6 +64,7 @@ namespace SenimentAnalyzerServer
                 user.userID = rdr.GetInt32("sID");
                 user.username = rdr.GetString("sUser");
                 user.password = rdr.GetString("sPassword");
+                user.name = rdr.GetString("sName");
                 rdr.Close();
             }
             else
