@@ -11,6 +11,7 @@ namespace SenimentAnalyzerServer
     {
         public static int bufferSize = 2048; //2KB buffer size for standard messages
 
+        //Recives incomming message and responds accordingly
         public static void HandleMessage(TcpClient client)
         {
             string message = ReciveMessage(client, bufferSize);

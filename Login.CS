@@ -7,19 +7,30 @@ using System.IO;
 using System.Net;
 using System.Net.Mail;
 using System.Security.Cryptography;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace SenimentAnalyzerServer
 {
     class Login
     {
-        public static List<Token> resetTokens = new List<Token>(); //Valid Password Reset Tokens
-        public static List<Token> sessionTokens = new List<Token>(); //Valid Session Tokens
-        public static string smtpPassword = "kwcbuwerypzlmwcz";
+        public static string smtpPassword = "kwcbuwerypzlmwcz"; //Uniquie app & hardware specific token for smtp login
+        public static string resetEmailBody; //unformated string for body of reset email.
 
-        public static string resetEmailBody;
+        //Regex for final server side validation
+        public static Regex ValidateUsername = new Regex("^[a-zA-Z0-9]+$");
+        public static Regex ValidatePassword = new Regex("^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$");
+        public static Regex ValidateEmail = new Regex("^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$");
+
+        //Compares salted hash returns true if login valid
         public static bool CheckLogin(string username, string password)
         {
+            //server side input validation
+            if (!ValidateUsername.IsMatch(username) || !ValidatePassword.IsMatch(password))
+            {
+                return false;
+            }
+
             //Grab Stored password from SQL database
             User user = SQLConnection.GetUser(username);
             
@@ -52,6 +63,7 @@ namespace SenimentAnalyzerServer
             return false; //invalid user
         }
 
+        //returns Salted and hashed password
         private static string SaltedHash(string plainText)
         {
             //Create a salt
@@ -68,8 +80,15 @@ namespace SenimentAnalyzerServer
             return Convert.ToBase64String(hashBytes);
         }
 
+        //Checks valid login then stores new salted hashed in DB
         public static bool ChangePassword(string username, string currentPass, string newPass)
         {
+            //server side input validation
+            if (!ValidatePassword.IsMatch(newPass) || !ValidateUsername.IsMatch(username) || !ValidatePassword.IsMatch(currentPass))
+            {
+                return false;
+            }
+
             if (CheckLogin(username, currentPass))
             {
                 string saltedHash = SaltedHash(newPass);
@@ -80,8 +99,15 @@ namespace SenimentAnalyzerServer
             return false;
         }
 
+        //creates an account record returns false if user already exists
         public static bool CreateAccount(string username, string password, string name)
         {
+            //server side input validation
+            if (!ValidatePassword.IsMatch(password) || !ValidateUsername.IsMatch(username) || !ValidateEmail.IsMatch(name))
+            {
+                return false;
+            }
+
             if (!CheckUsername(username)) //if user is not in DB
             {
                 User user = new User(username, SaltedHash(password), 0, name);
@@ -92,8 +118,15 @@ namespace SenimentAnalyzerServer
 
         }
 
+        //deletes a given user account (requires valid login)
         public static bool DeleteAccount(string username, string password)
         {
+            //server side input validation
+            if (!ValidatePassword.IsMatch(password) || !ValidateUsername.IsMatch(username))
+            {
+                return false;
+            }
+
             if (CheckLogin(username, password))
             {
                 SQLConnection.DeleteUser(username);
@@ -105,7 +138,8 @@ namespace SenimentAnalyzerServer
             }
         }
 
-        private static bool CheckUsername(string username) //returns true if username is in DB
+        //returns true if username is in DB
+        private static bool CheckUsername(string username) 
         {
             if (SQLConnection.GetUser(username).userID > -1)
             {
@@ -115,24 +149,22 @@ namespace SenimentAnalyzerServer
             return false;
         }
 
-        public static void RemoveExpiredTokens(List<Token> tokens) 
-        {
-            for(int i = tokens.Count - 1; i >= 0; i--)
-            {
-                if (tokens[i].isExpired())
-                { 
-                    tokens.RemoveAt(i);
-                }
-            }
-        }
-        
+        //Loads reset email template from file
         public static void GetEmailTemplate()
         {
             string appPath = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
             resetEmailBody = File.ReadAllText(appPath + @"\resetEmailTemplate.txt");
         }
+
+        //Generates and emails reset token to account email
         public static bool GeneratePasswordReset(string userName)
         {
+            //server side input validation
+            if (!ValidateUsername.IsMatch(userName))
+            {
+                return false;
+            }
+
             User user = SQLConnection.GetUser(userName);
             if (user.userID == -1) //if user not found
             {
@@ -141,7 +173,7 @@ namespace SenimentAnalyzerServer
             }
 
             Token token = new Token(userName, 16, 6); //new Token vaild for 6 Hours
-            resetTokens.Add(token); //add to valid tokem list
+            Token.resetTokens.Add(token); //add to valid tokem list
 
             var smtpClient = new SmtpClient("smtp.gmail.com")
             {
@@ -153,95 +185,19 @@ namespace SenimentAnalyzerServer
             smtpClient.Send("rereview.4319@gmail.com", user.name, "Re-Review Password Reset", string.Format(resetEmailBody, token.key));
             return true;
         }
-
-        private static bool FindResetToken(string key, string userName)
-        {
-            foreach (Token token in resetTokens)
-            {
-                if (token.key == key && token.userName == userName)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-        private static void RemoveResetToken(string key)
-        {
-            for (int i = resetTokens.Count - 1; i >= 0; i--)
-            {
-                if (resetTokens[i].key == key)
-                {
-                    resetTokens.RemoveAt(i);
-                    return;
-                }
-            }
-        }
-
+        //Reset password using token
         public static bool ResetPassword(string username, string token, string newPassword)
         {
-            if (FindResetToken(token, username)) //If token is valid
+            //server side input validation
+            if (!ValidatePassword.IsMatch(newPassword) || !ValidateUsername.IsMatch(username))
+            {
+                return false;
+            }
+
+            if (Token.FindResetToken(token, username)) //If token is valid
             {
                 SQLConnection.UpdateUser(username, SaltedHash(newPassword)); //update password
-                RemoveResetToken(token); //removed used token
-                return true;
-            }
-
-            return false;
-        }
-        public static void TokenManagement() //Background thread for removing expired tokens.
-        {
-            while (true)
-            {
-                RemoveExpiredTokens(resetTokens);
-                RemoveExpiredTokens(sessionTokens);
-                Console.WriteLine("Expired Tokens Cleared");
-                Thread.Sleep(1800000); //Sleep 30 minutes
-            }
-        }
-    }
-
-    //Stores a random alpha numeric key default length 10 & the time the token was issued by the server.
-    public class Token //Tokens used for logon sessions and password resets
-    {
-        public string key;
-        public string userName;
-        DateTime issuedTime;
-        DateTime expireTime;
-
-        public Token(string userName, int validHours)
-        {
-            this.userName = userName;
-            key = RandomString(10);
-            issuedTime = DateTime.Now;
-            expireTime = DateTime.Now.AddHours(validHours);
-        }
-
-        public Token(string userName, int length, int validHours)
-        {
-            this.userName = userName;
-            key = RandomString(length);
-            issuedTime = DateTime.Now;
-            expireTime = DateTime.Now.AddHours(validHours);
-        }
-        private static string RandomString(int length)
-        {
-            const string pool = "abcdefghijklmnopqrstuvwxyz0123456789";
-            var builder = new System.Text.StringBuilder();
-            Random random = new Random(Guid.NewGuid().GetHashCode());
-
-            for (var i = 0; i < length; i++)
-            {
-                var c = pool[random.Next(0, pool.Length)];
-                builder.Append(c);
-            }
-
-            return builder.ToString();
-        }
-
-        public bool isExpired()
-        {
-            if (DateTime.Compare(issuedTime, expireTime) > 0)
-            {
+                Token.RemoveResetToken(token); //removed used token
                 return true;
             }
 

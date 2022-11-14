@@ -16,7 +16,7 @@ namespace SenimentAnalyzerServer
             Login.GetEmailTemplate();
 
             //Start Token Management (Clears expired tokens)
-            Thread tokenManagement = new Thread(new ThreadStart(Login.TokenManagement));
+            Thread tokenManagement = new Thread(new ThreadStart(Token.TokenManagement));
             tokenManagement.Start();
 
             //Start tcp server
