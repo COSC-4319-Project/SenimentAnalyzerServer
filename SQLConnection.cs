@@ -24,7 +24,7 @@ namespace SenimentAnalyzerServer
             //Console.WriteLine(cmd.CommandText);
             cmd.ExecuteNonQuery();
 
-            cmd.CommandText = @"CREATE TABLE IF NOT EXISTS reviews(numRev int, numPos int, numNeg int, adjustedRating float, confidence float, UId int, asinID varchar(10), IDDate Date, prodName varchar(255), primary key(UId,asinID))";
+            cmd.CommandText = @"CREATE TABLE IF NOT EXISTS reviews(numRev int, numPos int, numNeg int, adjustedRating float, confidence float, UId int, asinID varchar(10), IDDate Date, prodName varchar(255), origRating float, primary key(UId,asinID))";
             cmd.ExecuteNonQuery();
         }
 
@@ -97,7 +97,7 @@ namespace SenimentAnalyzerServer
             //cmd.CommandText = "SELECT * FROM reviews WHERE asinID=" + productID;
             rdr = cmd.ExecuteReader();
 
-            if (rdr.HasRows)
+            if (rdr.Read())
             {
                 rec.asinID = rdr.GetString("asinID");
                 rec.productName = rdr.GetString("prodName");
@@ -108,19 +108,28 @@ namespace SenimentAnalyzerServer
                 rec.confidence = rdr.GetFloat("confidence");
                 rec.uID = rdr.GetInt32("UId");
                 rec.dateAnalyzed = rdr.GetDateTime("IDDate");
+                rec.origRating = rdr.GetFloat("origRating");
             }
             else //if not found
             {
                 rec.numRev = -1; //To indicate no record found
             }
-                
+
+            rdr.Close();
             return rec;
         }
 
         public static void CreateHistoryRec(HistoryRec rec)
         {
-            cmd.CommandText = string.Format("INSERT INTO reviews(numRev, numPos, numNeg, adjustedRating, confidence, UId, ASINID, IDDate,prodName) VALUES ('{0}','{1}','{3}','{4}','{5}','{6}','{7}','{8}',)", rec.numRev,rec.numPos,rec.numNeg,rec.adjustedRating,rec.confidence,rec.uID,rec.asinID,rec.dateAnalyzed,rec.productName);
+            // reviews(numRev int, numPos int, numNeg int, adjustedRating float, confidence float, UId int, asinID varchar(10), IDDate Date, prodName varchar(255), origRating float, primary key(UId,asinID))
+            cmd.CommandText = string.Format("INSERT INTO reviews(numRev, numPos, numNeg, adjustedRating, confidence, UId, asinID, IDDate,prodName, origRating) VALUES ('{0}','{1}','{2}','{3}','{4}','{5}','{6}',STR_TO_DATE('{7}','%m/%d/%Y %h:%i:%s %p'),'{8}','{9}')", rec.numRev,rec.numPos,rec.numNeg,rec.adjustedRating,rec.confidence,rec.uID,rec.asinID,rec.dateAnalyzed,rec.productName,rec.origRating);
             //cmd.CommandText = "INSERT INTO reviews(sentVal, numRev, numPos, numNeg, adjustedRating, confidence, UId, ASINID, IDDate) VALUES ('" + rec.sentimentVal + "'," + rec.numRev + "','" + rec.numPos + "','" + rec.numNeg + "','" + rec.adjustedRating + "','" + rec.confidence + "','" + rec.uID + "','" + rec.asinID + "','" + rec.dateAnalyzed + "')";
+            cmd.ExecuteNonQuery();
+        }
+
+        public static void DeleteHistoryRec(string asin)
+        {
+            cmd.CommandText = string.Format("DELETE FROM reviews WHERE asinID='{0}'", asin);
             cmd.ExecuteNonQuery();
         }
 
@@ -154,7 +163,22 @@ namespace SenimentAnalyzerServer
         public int numPos;
         public float confidence;
         public float adjustedRating;
+        public float origRating;
         public int uID; 
         public DateTime dateAnalyzed;
+        //AHIS|asin|uID|adjRat|productName|numRev|numPos|numNeg|connfidence|dateAnalyzed|origRating
+        public HistoryRec(string[] message) //Parse response from server into record
+        {
+            asinID = message[1];
+            uID = int.Parse(message[2]);
+            adjustedRating = float.Parse(message[3]);
+            productName = message[4];
+            numRev = int.Parse(message[5]);
+            numPos = int.Parse(message[6]);
+            numNeg = int.Parse(message[7]);
+            confidence = float.Parse(message[8]);
+            dateAnalyzed = DateTime.Parse(message[9]);
+            origRating = float.Parse(message[10]);
+        }
     }
 }

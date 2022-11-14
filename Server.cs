@@ -38,7 +38,7 @@ namespace SenimentAnalyzerServer
                     switch (splitMes[1])
                     {
                         case "SNG": //Version Request
-                            response = RequestResponse(splitMes);
+                            response = HistoryRequestResponse(splitMes);
                             break;
                         case "ALL": //Contents request
                             response = AllHistoryResponse(splitMes);
@@ -53,6 +53,9 @@ namespace SenimentAnalyzerServer
                     break;
                 case "CMD": //Delete account & other various commands
                     response = CommandResponse(splitMes);  
+                    break;
+                case "AHIS":
+                    response = AddHistoryRecord(splitMes);
                     break;
 
             }
@@ -178,7 +181,7 @@ namespace SenimentAnalyzerServer
         }
 
         //HIS|asinID - request history for asinID
-        static string RequestResponse(string[] message)
+        static string HistoryRequestResponse(string[] message)
         {
             HistoryRec rec = SQLConnection.GetHistoryRec(message[2]);
 
@@ -188,11 +191,18 @@ namespace SenimentAnalyzerServer
                 {
                     return "0";
                 }
-                //asin|uID|adjRat|sent|numRev|numPos|numNeg|connfidence|dateAnalyzed
-                return rec.asinID + "|" + rec.uID + "|" + rec.adjustedRating + "|" + rec.productName + "|" + rec.numRev + "|" + rec.numPos + "|" + rec.numNeg + "|" + rec.confidence + "|" + rec.dateAnalyzed;
+                //asin|uID|adjRat|productName|numRev|numPos|numNeg|connfidence|dateAnalyzed|origRating
+                return rec.asinID + "|" + rec.uID + "|" + rec.adjustedRating + "|" + rec.productName + "|" + rec.numRev + "|" + rec.numPos + "|" + rec.numNeg + "|" + rec.confidence + "|" + rec.dateAnalyzed + "|" + rec.origRating;
             }
 
             return "0";
+        }
+        //AHIS|asin|uID|adjRat|productName|numRev|numPos|numNeg|connfidence|dateAnalyzed|origRating
+        public static string AddHistoryRecord(string[] message)
+        {
+            SQLConnection.DeleteHistoryRec(message[1]);
+            SQLConnection.CreateHistoryRec(new HistoryRec(message));
+            return "";
         }
         static string AllHistoryResponse(string[] message)
         {
