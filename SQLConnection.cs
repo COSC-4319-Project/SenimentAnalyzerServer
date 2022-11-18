@@ -135,7 +135,7 @@ namespace SenimentAnalyzerServer
         public static void CreateHistoryRec(HistoryRec rec)
         {
             // reviews(numRev int, numPos int, numNeg int, adjustedRating float, confidence float, UId int, asinID varchar(10), IDDate Date, prodName varchar(255), origRating float, primary key(UId,asinID))
-            string cmdText = "INSERT INTO reviews(numRev, numPos, numNeg, adjustedRating, confidence, UId, asinID, IDDate,prodName, origRating) VALUES (@numRev, @numPos, @numNeg, @adjustedRating, @confidence, @UId, @asinID, STR_TO_DATE(@IDdate,'%m/%d/%Y %h:%i:%s %p'), @prodName, @origRating)";
+            string cmdText = "INSERT INTO reviews(numRev, numPos, numNeg, adjustedRating, confidence, UId, asinID, IDDate,prodName, origRating) VALUES (@numRev, @numPos, @numNeg, @adjustedRating, @confidence, @UId, @asinID, @IDdate, @prodName, @origRating)";
             //cmd.CommandText = string.Format("INSERT INTO reviews(numRev, numPos, numNeg, adjustedRating, confidence, UId, asinID, IDDate,prodName, origRating) VALUES ('{0}','{1}','{2}','{3}','{4}','{5}','{6}',STR_TO_DATE('{7}','%m/%d/%Y %h:%i:%s %p'),'{8}','{9}')", rec.numRev,rec.numPos,rec.numNeg,rec.adjustedRating,rec.confidence,rec.uID,rec.asinID,rec.dateAnalyzed,rec.productName,rec.origRating);
             cmd = new MySqlCommand(cmdText, con);
             //Parameters

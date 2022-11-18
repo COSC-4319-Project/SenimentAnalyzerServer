@@ -130,7 +130,7 @@ namespace SenimentAnalyzerServer
         //SLT|username
         static string RequestSalt(string[] message)
         {
-
+            return "";
         
         }
 
