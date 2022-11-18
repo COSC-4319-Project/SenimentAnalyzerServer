@@ -21,7 +21,7 @@ namespace SenimentAnalyzerServer
         public static Regex ValidateUsername = new Regex("^[a-zA-Z0-9]+$");
         public static Regex ValidatePassword = new Regex("^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{8,}$");
         public static Regex ValidateEmail = new Regex("^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$");
-
+        
         //Compares salted hash returns true if login valid
         public static bool CheckLogin(string username, string password)
         {
@@ -79,6 +79,21 @@ namespace SenimentAnalyzerServer
             //Convert to string
             return Convert.ToBase64String(hashBytes);
         }
+
+        public static string GetSalt(string username)
+        {
+            if (!ValidateUsername.IsMatch(username)) //Validate input.
+            {
+                return "";
+            }
+            User user = SQLConnection.GetUser(username); //Get user record
+            byte[] hashBytes = Convert.FromBase64String(user.password);
+            byte[] salt = new byte[16];//extract salt.
+            Array.Copy(hashBytes, 0, salt, 0, 16);
+
+            return Convert.ToBase64String(salt);
+        }
+
 
         //Checks valid login then stores new salted hashed in DB
         public static bool ChangePassword(string username, string currentPass, string newPass)

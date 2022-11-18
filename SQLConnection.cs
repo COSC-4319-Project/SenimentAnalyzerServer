@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using MySql.Data.MySqlClient;
 
 namespace SenimentAnalyzerServer
@@ -54,8 +55,9 @@ namespace SenimentAnalyzerServer
         public static User GetUser(string username)
         {
             User user = new User();
-            cmd.CommandText = "SELECT * FROM login WHERE sUser='" + username + "'";
-            Console.WriteLine(cmd.CommandText);
+            string command = "SELECT * FROM login WHERE sUser= @Username";
+            cmd = new MySqlCommand(command, con);
+            cmd.Parameters.Add(new MySqlParameter("@Username", username));
             rdr = cmd.ExecuteReader();
 
             if (rdr.HasRows)
@@ -125,6 +127,31 @@ namespace SenimentAnalyzerServer
             cmd.CommandText = string.Format("INSERT INTO reviews(numRev, numPos, numNeg, adjustedRating, confidence, UId, asinID, IDDate,prodName, origRating) VALUES ('{0}','{1}','{2}','{3}','{4}','{5}','{6}',STR_TO_DATE('{7}','%m/%d/%Y %h:%i:%s %p'),'{8}','{9}')", rec.numRev,rec.numPos,rec.numNeg,rec.adjustedRating,rec.confidence,rec.uID,rec.asinID,rec.dateAnalyzed,rec.productName,rec.origRating);
             //cmd.CommandText = "INSERT INTO reviews(sentVal, numRev, numPos, numNeg, adjustedRating, confidence, UId, ASINID, IDDate) VALUES ('" + rec.sentimentVal + "'," + rec.numRev + "','" + rec.numPos + "','" + rec.numNeg + "','" + rec.adjustedRating + "','" + rec.confidence + "','" + rec.uID + "','" + rec.asinID + "','" + rec.dateAnalyzed + "')";
             cmd.ExecuteNonQuery();
+        }
+
+        public static HistoryRec[] GetUserHistory(int uID)
+        {
+            List<HistoryRec> recList = new List<HistoryRec>();
+            cmd.CommandText = string.Format("SELECT * FROM reviews WHERE UId='{0}'", uID);
+            rdr = cmd.ExecuteReader();
+
+            while (rdr.Read())
+            {
+                HistoryRec rec = new HistoryRec();
+                rec.asinID = rdr.GetString("asinID");
+                rec.productName = rdr.GetString("prodName");
+                rec.numRev = rdr.GetInt32("numRev");
+                rec.numPos = rdr.GetInt32("numPos");
+                rec.numNeg = rdr.GetInt32("numNeg");
+                rec.adjustedRating = rdr.GetFloat("adjustedRating");
+                rec.confidence = rdr.GetFloat("confidence");
+                rec.uID = rdr.GetInt32("UId");
+                rec.dateAnalyzed = rdr.GetDateTime("IDDate");
+                rec.origRating = rdr.GetFloat("origRating");
+                recList.Add(rec);
+            }
+
+            return recList.ToArray();
         }
 
         public static void DeleteHistoryRec(string asin)

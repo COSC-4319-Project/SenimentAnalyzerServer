@@ -42,7 +42,7 @@ namespace SenimentAnalyzerServer
                             response = HistoryRequestResponse(splitMes);
                             break;
                         case "ALL": //Contents request
-                            response = AllHistoryResponse(splitMes);
+                            response = AllHistoryResponse(splitMes, client);
                             break;
                     }
                     break;
@@ -127,6 +127,13 @@ namespace SenimentAnalyzerServer
 
         }
 
+        //SLT|username
+        static string RequestSalt(string[] message)
+        {
+
+        
+        }
+
         //ACT|userName|password|name - create account
         static string CreateAccountResponse(string[] message)   
         {
@@ -205,9 +212,20 @@ namespace SenimentAnalyzerServer
             SQLConnection.CreateHistoryRec(new HistoryRec(message));
             return "";
         }
-        static string AllHistoryResponse(string[] message)
+        static string AllHistoryResponse(string[] message, TcpClient client)
         {
-            //HistoryRec[] recs = SQLConnection.GetHistoryRec(message[2]);
+            int i = 0;
+            if (!int.TryParse(message[2], out i))
+            {
+                return ""; //Make sure client input is valid.
+            }
+            HistoryRec[] recs = SQLConnection.GetUserHistory(i);
+
+            foreach (HistoryRec rec in recs)
+            {
+                string recStr =  rec.asinID + "|" + rec.uID + "|" + rec.adjustedRating + "|" + rec.productName + "|" + rec.numRev + "|" + rec.numPos + "|" + rec.numNeg + "|" + rec.confidence + "|" + rec.dateAnalyzed + "|" + rec.origRating;
+                SendMessage(recStr, client);
+            }
             return "";  
         }
 
