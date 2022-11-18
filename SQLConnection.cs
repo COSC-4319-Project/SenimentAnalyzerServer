@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using MySql.Data.MySqlClient;
 
 namespace SenimentAnalyzerServer
@@ -57,7 +58,7 @@ namespace SenimentAnalyzerServer
             User user = new User();
             string command = "SELECT * FROM login WHERE sUser= @Username";
             cmd = new MySqlCommand(command, con);
-            cmd.Parameters.Add(new MySqlParameter("@Username", username));
+            cmd.Parameters.Add(new MySqlParameter("@Username", username)); //Parameters to protect against SQL injection.
             rdr = cmd.ExecuteReader();
 
             if (rdr.HasRows)
@@ -80,14 +81,23 @@ namespace SenimentAnalyzerServer
 
         public static void CreateUser(User user)
         {
-            cmd.CommandText = "INSERT INTO login(sName, sUser, sPassword) VALUES ('" + user.name + "','" + user.username + "','" + user.password + "')";
+            //Create command object
+            string cmdText = "INSERT INTO login(sName, sUser, sPassword) VALUES (@name, @username, @password)";
+            cmd = new MySqlCommand(cmdText, con);
+            //Add Parameters
+            cmd.Parameters.Add(new MySqlParameter("@name", user.name));
+            cmd.Parameters.Add(new MySqlParameter("@username", user.username));
+            cmd.Parameters.Add(new MySqlParameter("@password",user.password));
+            //Execute table addition
             cmd.ExecuteNonQuery();
         }
 
         public static void UpdateUser(string username, string newPassword)
         {
-            cmd.CommandText = string.Format("UPDATE login SET sPassword='{0}' WHERE sUser='{1}'", newPassword, username);
-            //cmd.CommandText = "UPDATE login Set sPassword='" + newPassword + "' WHERE sUser='" + newPassword + "'";
+            string cmdText = "UPDATE login SET sPassword= @password WHERE sUser= @username";
+            cmd = new MySqlCommand(cmdText, con);
+            cmd.Parameters.Add(new MySqlParameter("@password", newPassword));
+            cmd.Parameters.Add(new MySqlParameter("@username", username));
             cmd.ExecuteNonQuery();
         }
 
@@ -95,8 +105,9 @@ namespace SenimentAnalyzerServer
         public static HistoryRec GetHistoryRec(string productID)
         {
             HistoryRec rec = new HistoryRec();
-            cmd.CommandText = string.Format("SELECT * FROM reviews WHERE asinID='{0}'", productID);
-            //cmd.CommandText = "SELECT * FROM reviews WHERE asinID=" + productID;
+            string cmdText = "SELECT * FROM reviews WHERE asinID= @productID";
+            cmd = new MySqlCommand(cmdText, con);
+            cmd.Parameters.Add(new MySqlParameter("@productID", productID));
             rdr = cmd.ExecuteReader();
 
             if (rdr.Read())
@@ -124,15 +135,31 @@ namespace SenimentAnalyzerServer
         public static void CreateHistoryRec(HistoryRec rec)
         {
             // reviews(numRev int, numPos int, numNeg int, adjustedRating float, confidence float, UId int, asinID varchar(10), IDDate Date, prodName varchar(255), origRating float, primary key(UId,asinID))
-            cmd.CommandText = string.Format("INSERT INTO reviews(numRev, numPos, numNeg, adjustedRating, confidence, UId, asinID, IDDate,prodName, origRating) VALUES ('{0}','{1}','{2}','{3}','{4}','{5}','{6}',STR_TO_DATE('{7}','%m/%d/%Y %h:%i:%s %p'),'{8}','{9}')", rec.numRev,rec.numPos,rec.numNeg,rec.adjustedRating,rec.confidence,rec.uID,rec.asinID,rec.dateAnalyzed,rec.productName,rec.origRating);
-            //cmd.CommandText = "INSERT INTO reviews(sentVal, numRev, numPos, numNeg, adjustedRating, confidence, UId, ASINID, IDDate) VALUES ('" + rec.sentimentVal + "'," + rec.numRev + "','" + rec.numPos + "','" + rec.numNeg + "','" + rec.adjustedRating + "','" + rec.confidence + "','" + rec.uID + "','" + rec.asinID + "','" + rec.dateAnalyzed + "')";
+            string cmdText = "INSERT INTO reviews(numRev, numPos, numNeg, adjustedRating, confidence, UId, asinID, IDDate,prodName, origRating) VALUES (@numRev, @numPos, @numNeg, @adjustedRating, @confidence, @UId, @asinID, STR_TO_DATE(@IDdate,'%m/%d/%Y %h:%i:%s %p'), @prodName, @origRating)";
+            //cmd.CommandText = string.Format("INSERT INTO reviews(numRev, numPos, numNeg, adjustedRating, confidence, UId, asinID, IDDate,prodName, origRating) VALUES ('{0}','{1}','{2}','{3}','{4}','{5}','{6}',STR_TO_DATE('{7}','%m/%d/%Y %h:%i:%s %p'),'{8}','{9}')", rec.numRev,rec.numPos,rec.numNeg,rec.adjustedRating,rec.confidence,rec.uID,rec.asinID,rec.dateAnalyzed,rec.productName,rec.origRating);
+            cmd = new MySqlCommand(cmdText, con);
+            //Parameters
+            cmd.Parameters.Add(new MySqlParameter("@numRev", rec.numRev));
+            cmd.Parameters.Add(new MySqlParameter("@numPos", rec.numPos));
+            cmd.Parameters.Add(new MySqlParameter("@numNeg", rec.numNeg));
+            cmd.Parameters.Add(new MySqlParameter("@adjustedRating", rec.adjustedRating));
+            cmd.Parameters.Add(new MySqlParameter("@confidence", rec.confidence));
+            cmd.Parameters.Add(new MySqlParameter("@UId", rec.uID));
+            cmd.Parameters.Add(new MySqlParameter("@asinID", rec.asinID));
+            cmd.Parameters.Add(new MySqlParameter("@IDdate", rec.dateAnalyzed));
+            cmd.Parameters.Add(new MySqlParameter("@prodName", rec.productName));
+            cmd.Parameters.Add(new MySqlParameter("@origRating", rec.origRating));
+
             cmd.ExecuteNonQuery();
         }
 
         public static HistoryRec[] GetUserHistory(int uID)
         {
             List<HistoryRec> recList = new List<HistoryRec>();
-            cmd.CommandText = string.Format("SELECT * FROM reviews WHERE UId='{0}'", uID);
+            string cmdText = "SELECT * FROM reviews WHERE UId= @Uid";
+            cmd = new MySqlCommand(cmdText, con);
+            cmd.Parameters.Add(new MySqlParameter("@Uid", uID));
+
             rdr = cmd.ExecuteReader();
 
             while (rdr.Read())
@@ -156,7 +183,9 @@ namespace SenimentAnalyzerServer
 
         public static void DeleteHistoryRec(string asin)
         {
-            cmd.CommandText = string.Format("DELETE FROM reviews WHERE asinID='{0}'", asin);
+            string cmdText = "DELETE FROM reviews WHERE asinID= @asin";
+            cmd = new MySqlCommand(cmdText, con);
+            cmd.Parameters.Add(new MySqlParameter("@asin", asin));
             cmd.ExecuteNonQuery();
         }
 
@@ -164,6 +193,7 @@ namespace SenimentAnalyzerServer
         {
             //SQL DATABASE: delete user entry in database
         }
+
     }
 
     struct User
