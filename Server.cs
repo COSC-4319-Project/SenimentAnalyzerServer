@@ -4,17 +4,19 @@
 using System;
 using System.Text;
 using System.Net.Sockets;
+using System.Net.Security;
 
 namespace SenimentAnalyzerServer
 {
     class Server //Comunicates lexicon updates and cached history.
     {
-        public static int bufferSize = 2048; //2KB buffer size for standard messages
+        public static int bufferSize = 8192; //2KB buffer size for standard messages
 
         //Recives incomming message and responds accordingly
-        public static void HandleMessage(TcpClient client)
+        public static void HandleMessage(SslStream stream)
         {
-            string message = ReciveMessage(client, bufferSize);
+            string message = ReciveMessage(stream, bufferSize);
+            Console.WriteLine(message);
             string[] splitMes = message.Split('|');
 
             //Generate correct response
@@ -28,7 +30,7 @@ namespace SenimentAnalyzerServer
                             response = LexiconVerResponse(splitMes);
                             break;
                         case "REQ": //Contents request
-                            LexiconReqResponse(splitMes, client);
+                            LexiconReqResponse(splitMes, stream);
                             break;
                     }
                     break;
@@ -42,7 +44,7 @@ namespace SenimentAnalyzerServer
                             response = HistoryRequestResponse(splitMes);
                             break;
                         case "ALL": //Contents request
-                            response = AllHistoryResponse(splitMes, client);
+                            response = AllHistoryResponse(splitMes, stream);
                             break;
                     }
                     break;
@@ -67,7 +69,7 @@ namespace SenimentAnalyzerServer
             if (response != "")
             {
                 Console.WriteLine(response);
-                SendMessage(response,client);
+                SendMessage(response,stream);
             }
         }
         static string HandleAccountMessage(string[] message)
@@ -97,7 +99,7 @@ namespace SenimentAnalyzerServer
         }
 
         // LEX|REQ|lexNum - Client requseted contents of Lexicon
-        static void LexiconReqResponse(string[] message, TcpClient client)
+        static void LexiconReqResponse(string[] message, SslStream stream)
         {
             int lexNum = int.Parse(message[2]);
             int len = LexiconLoader.wordLists[lexNum].Length; //message length
@@ -105,13 +107,13 @@ namespace SenimentAnalyzerServer
             if (lexNum == 5) //Emojiis need to be encoded in unicode
             {
                 len = len * 8; //size increase for UTF-8 encoding
-                SendMessage(len.ToString(), client); //Send length of next message
-                SendMessageUTF8(LexiconLoader.wordLists[lexNum], client); //Send entire Lexicon list
+                SendMessage(len.ToString(), stream); //Send length of next message
+                SendMessageUTF8(LexiconLoader.wordLists[lexNum], stream); //Send entire Lexicon list
             }
             else //All other lists can be ascii encoded to save space
             {
-                SendMessage(len.ToString(), client); //Send length of next message
-                SendMessage(LexiconLoader.wordLists[lexNum], client); //Send entire Lexicon list
+                SendMessage(len.ToString(), stream); //Send length of next message
+                SendMessage(LexiconLoader.wordLists[lexNum], stream); //Send entire Lexicon list
             }
         }
 
@@ -218,7 +220,7 @@ namespace SenimentAnalyzerServer
             SQLConnection.CreateHistoryRec(new HistoryRec(message));
             return "";
         }
-        static string AllHistoryResponse(string[] message, TcpClient client)
+        static string AllHistoryResponse(string[] message, SslStream stream)
         {
             int i = 0;
             if (!int.TryParse(message[2], out i))
@@ -230,38 +232,43 @@ namespace SenimentAnalyzerServer
             foreach (HistoryRec rec in recs)
             {
                 string recStr =  rec.asinID + "|" + rec.uID + "|" + rec.adjustedRating + "|" + rec.productName + "|" + rec.numRev + "|" + rec.numPos + "|" + rec.numNeg + "|" + rec.confidence + "|" + rec.dateAnalyzed + "|" + rec.origRating;
-                SendMessage(recStr, client);
+                SendMessage(recStr, stream);
             }
             return "";  
         }
 
         //Message Functions using Ascii & UTF8 encoding.
-        static void SendMessage(string message, TcpClient client)
+        static void SendMessage(string message, SslStream stream)
         {
+            message = "@" + message; //First character is split into another message for some reason in SSL
             byte[] buffer = Encoding.ASCII.GetBytes(message); //Encode string to byte array to be sent
-            client.GetStream().Write(buffer, 0, buffer.Length); //sends byte array to client
+            stream.Write(buffer, 0, buffer.Length); //sends byte array to client
         }
-        static void SendMessage(int length, string message, TcpClient client)
+        static void SendMessage(int length, string message, SslStream stream)
         {
+            message = "@" + message; //First character is split into another message for some reason in SSL
             byte[] buffer = Encoding.ASCII.GetBytes(message); //Encode string to byte array to be sent
-            client.GetStream().Write(buffer, 0, length); //sends byte array to client
+            stream.Write(buffer, 0, length); //sends byte array to client
         }
-        static void SendMessageUTF8(string message, TcpClient client)
+        static void SendMessageUTF8(string message, SslStream stream)
         {
+            message = "@" + message; //First character is split into another message for some reason in SSL
             byte[] buffer = Encoding.UTF8.GetBytes(message); //Encode string to byte array to be sent
-            client.GetStream().Write(buffer, 0, buffer.Length); //sends byte array to client
+            stream.Write(buffer, 0, buffer.Length); //sends byte array to client
         }
-        static string ReciveMessage(TcpClient client, int bufferSize)
+        static string ReciveMessage(SslStream stream, int bufferSize)
         {
             byte[] buffer = new byte[bufferSize];
-            int i = client.Client.Receive(buffer);
-            return System.Text.Encoding.ASCII.GetString(buffer, 0, i);
+            int i = stream.Read(buffer, 0, bufferSize);//Ignore first message
+            i = stream.Read(buffer, 0, bufferSize);
+            return Encoding.ASCII.GetString(buffer, 0, i);
         }
-        static string ReciveMessageUTF8(TcpClient client, int bufferSize)
+        static string ReciveMessageUTF8(SslStream stream, int bufferSize)
         {
             byte[] buffer = new byte[bufferSize];
-            int i = client.Client.Receive(buffer);
-            return System.Text.Encoding.UTF8.GetString(buffer,0,i);
+            int i = stream.Read(buffer, 0, bufferSize); //Ignore first message
+            i = stream.Read(buffer, 0, bufferSize);
+            return Encoding.UTF8.GetString(buffer,0,i);
         }
     }
 }
