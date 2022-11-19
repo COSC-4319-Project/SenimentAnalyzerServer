@@ -63,15 +63,75 @@ namespace SenimentAnalyzerServer
             return false; //invalid user
         }
 
-        //returns Salted and hashed password
-        private static string SaltedHash(string plainText)
+        //Compares salted hash returns true if login valid
+        public static bool CheckLoginHash(string username, string hashedPswd)
         {
-            //Create a salt
-            byte[] salt = new byte[16];
-            new RNGCryptoServiceProvider().GetBytes(salt);
+            //Validate username is in correct format
+            if (!ValidateUsername.IsMatch(username))
+            {
+                return false;
+            }
+            //try and get user record from database
+            User user = SQLConnection.GetUser(username);
+
+            if (user.userID != -1)  //if user exsists in database
+            {
+                return CompareHashes(user.password, hashedPswd);
+            }
+
+            return false; //User dosent exist
+        }
+
+        public static string GetSaltFromPswd(string username)
+        {
+            if (!ValidateUsername.IsMatch(username)) //Validate input.
+            {
+                return "";
+            }
+
+            User user = SQLConnection.GetUser(username); //Get user record
+
+            if (user.userID != -1) //username in database
+            { 
+                byte[] hashBytes = Convert.FromBase64String(user.password);
+                byte[] salt = new byte[16];//extract salt.
+                Array.Copy(hashBytes, 0, salt, 0, 16);
+                return Convert.ToBase64String(salt);
+            }
+
+            return "";
+        }
+
+        private static string GetSaltFromEmail(string username)
+        {
+            User user = SQLConnection.GetUser(username); //Get user record
+
+            if (user.userID != -1) //username in database
+            {
+                byte[] hashBytes = Convert.FromBase64String(user.name);
+                byte[] salt = new byte[16];//extract salt.
+                Array.Copy(hashBytes, 0, salt, 0, 16);
+                Console.WriteLine(Convert.ToBase64String(salt));
+                return Convert.ToBase64String(salt);
+            }
+
+            return "";
+        }
+
+        public static string HashFromSalt(string plainText, string strSalt)
+        {
+            if (strSalt == "INVALID")
+            {
+                return "INVALID";
+            }
+
+            //Convert salt
+            byte[] salt = Convert.FromBase64String(strSalt);
+
             //Create Bytes of hash value
             var pbkdf2 = new Rfc2898DeriveBytes(plainText, salt, 100000);
             byte[] hash = pbkdf2.GetBytes(20);
+
             //Combined Hash and Salt
             byte[] hashBytes = new byte[36];
             Array.Copy(salt, 0, hashBytes, 0, 16);
@@ -80,35 +140,40 @@ namespace SenimentAnalyzerServer
             return Convert.ToBase64String(hashBytes);
         }
 
-        public static string GetSalt(string username)
+        private static bool CompareHashes(string hash1, string hash2)
         {
-            if (!ValidateUsername.IsMatch(username)) //Validate input.
+            Console.WriteLine("Hash1: " + hash1);
+            Console.WriteLine("Hash1: " + hash2);
+
+            //convert hash strings into byte array
+            byte[] hashBytes1 = Convert.FromBase64String(hash1);
+            byte[] hashBytes2 = Convert.FromBase64String(hash2);
+
+            //Compare hashes:
+            for (int i = 0; i < 36; i++)
             {
-                return "";
+                if (hashBytes1[i] != hashBytes2[i])
+                {
+                    return false; //invalid password
+                }
             }
-            User user = SQLConnection.GetUser(username); //Get user record
-            byte[] hashBytes = Convert.FromBase64String(user.password);
-            byte[] salt = new byte[16];//extract salt.
-            Array.Copy(hashBytes, 0, salt, 0, 16);
-
-            return Convert.ToBase64String(salt);
+            //Correct
+            return true;
         }
-
 
         //Checks valid login then stores new salted hashed in DB
         public static bool ChangePassword(string username, string currentPass, string newPass)
         {
             //server side input validation
-            if (!ValidatePassword.IsMatch(newPass) || !ValidateUsername.IsMatch(username) || !ValidatePassword.IsMatch(currentPass))
+            if (!ValidateUsername.IsMatch(username))
             {
                 return false;
             }
 
-            if (CheckLogin(username, currentPass))
+            if (CheckLoginHash(username, currentPass))
             {
-                string saltedHash = SaltedHash(newPass);
                 //SQL command to store new saltedhash under username
-                SQLConnection.UpdateUser(username, saltedHash);
+                SQLConnection.UpdateUser(username, newPass);
             }
 
             return false;
@@ -118,14 +183,14 @@ namespace SenimentAnalyzerServer
         public static bool CreateAccount(string username, string password, string name)
         {
             //server side input validation
-            if (!ValidatePassword.IsMatch(password) || !ValidateUsername.IsMatch(username) || !ValidateEmail.IsMatch(name))
+            if (!ValidateUsername.IsMatch(username))
             {
                 return false;
             }
 
             if (!CheckUsername(username)) //if user is not in DB
             {
-                User user = new User(username, SaltedHash(password), 0, name);
+                User user = new User(username, password, 0, name);
                 SQLConnection.CreateUser(user);
                 return true;
             }
@@ -142,7 +207,7 @@ namespace SenimentAnalyzerServer
                 return false;
             }
 
-            if (CheckLogin(username, password))
+            if (CheckLoginHash(username, password))
             {
                 SQLConnection.DeleteUser(username);
                 return true;
@@ -171,23 +236,42 @@ namespace SenimentAnalyzerServer
             resetEmailBody = File.ReadAllText(appPath + @"\resetEmailTemplate.txt");
         }
 
-        //Generates and emails reset token to account email
-        public static bool GeneratePasswordReset(string userName)
+        //Checks if email and username are valid and match what is stored in DB
+        public static bool CheckEmail(string username, string email)
         {
             //server side input validation
-            if (!ValidateUsername.IsMatch(userName))
+            if (!ValidateUsername.IsMatch(username) | !ValidateEmail.IsMatch(email))
             {
                 return false;
             }
+            string salt = GetSaltFromEmail(username); //extract salt from stored email.
+            User user = SQLConnection.GetUser(username); //Get user record
 
-            User user = SQLConnection.GetUser(userName);
+            if (CompareHashes(HashFromSalt(email, salt), user.name))
+            {
+                return true;
+            }
+            
+            return false;
+        }
+
+        //Generates and emails reset token to account email
+        public static bool GeneratePasswordReset(string username, string email)
+        {
+            if (!CheckEmail(username, email))
+            {
+                Console.WriteLine("Email not a match");
+                return false;
+            }
+
+            User user = SQLConnection.GetUser(username);
             if (user.userID == -1) //if user not found
             {
                 //empty user rec
                 return false;
             }
 
-            Token token = new Token(userName, 16, 6); //new Token vaild for 6 Hours
+            Token token = new Token(username, 16, 6); //new Token vaild for 6 Hours
             Token.resetTokens.Add(token); //add to valid tokem list
 
             var smtpClient = new SmtpClient("smtp.gmail.com")
@@ -197,21 +281,21 @@ namespace SenimentAnalyzerServer
                 EnableSsl = true,
             };
 
-            smtpClient.Send("rereview.4319@gmail.com", user.name, "Re-Review Password Reset", string.Format(resetEmailBody, token.key));
+            smtpClient.Send("rereview.4319@gmail.com", email, "Re-Review Password Reset", string.Format(resetEmailBody, token.key));
             return true;
         }
         //Reset password using token
         public static bool ResetPassword(string username, string token, string newPassword)
         {
             //server side input validation
-            if (!ValidatePassword.IsMatch(newPassword) || !ValidateUsername.IsMatch(username))
+            if (!ValidateUsername.IsMatch(username))
             {
                 return false;
             }
 
             if (Token.FindResetToken(token, username)) //If token is valid
             {
-                SQLConnection.UpdateUser(username, SaltedHash(newPassword)); //update password
+                SQLConnection.UpdateUser(username, newPassword); //update password
                 Token.RemoveResetToken(token); //removed used token
                 return true;
             }

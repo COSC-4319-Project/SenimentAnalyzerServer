@@ -58,11 +58,15 @@ namespace SenimentAnalyzerServer
                 case "AHIS":
                     response = AddHistoryRecord(splitMes);
                     break;
+                case "SLT":
+                    response = Login.GetSaltFromPswd(splitMes[1]);
+                    break;
 
             }
             //Respond if nessesary
             if (response != "")
             {
+                Console.WriteLine(response);
                 SendMessage(response,client);
             }
         }
@@ -114,14 +118,16 @@ namespace SenimentAnalyzerServer
         // LGN|userName|password - Login
         static string LoginResponse(string[] message)                      
         {
-
-            if (Login.CheckLogin(message[1], message[2]))
+            
+            if (Login.CheckLoginHash(message[1], message[2]))
             {
                 User user = SQLConnection.GetUser(message[1]); //Grab user record from database
-                return user.userID + "|" + user.name; //Return User ID and name
+                Console.WriteLine("Client Logged IN");
+                return user.userID + "|name" ; //Return User ID and name
             }
             else
             {
+                Console.WriteLine("Client Logged in Falied");
                 return "INVALID";
             }
 
@@ -130,7 +136,7 @@ namespace SenimentAnalyzerServer
         //SLT|username
         static string RequestSalt(string[] message)
         {
-            return "";
+            return Login.GetSaltFromPswd(message[0]);
         
         }
 
@@ -148,10 +154,10 @@ namespace SenimentAnalyzerServer
 
         }
 
-        //ACT|RST|REQ|username|
+        //ACT|RST|REQ|username|email
         static string PassResetTokenReqResponse(string[] message)
         {
-            if (Login.GeneratePasswordReset(message[3]))
+            if (Login.GeneratePasswordReset(message[3], message[4]))
             {
                 return "VALID";
             }
