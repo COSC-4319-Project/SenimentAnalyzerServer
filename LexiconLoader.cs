@@ -2,7 +2,7 @@
 
 namespace SenimentAnalyzerServer
 {
-    class LexiconLoader
+    class LexiconLoader //Stripped down version of lexicon class from client
     {
         public static string[] wordLocs = new string[6];
         public static string[] wordLists = new string[6];
@@ -28,7 +28,8 @@ namespace SenimentAnalyzerServer
             }
         }
 
-        private static void SetLocations()
+        //Set relative file location of lexicon
+        private static void SetLocations() 
         {
             wordLocs[0] = "/Lexicon/positive-words.txt";
             wordLocs[1] = "/Lexicon/negative-words.txt";
