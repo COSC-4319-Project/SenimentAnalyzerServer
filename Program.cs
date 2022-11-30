@@ -7,19 +7,14 @@ using System.Net.Sockets;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
-using System.Security.Cryptography;
-using System.IO;
-using Org.BouncyCastle.Asn1.X509;
 
 namespace SenimentAnalyzerServer
 {
     class Program 
     {
-        //Cert
-        //private static X509Certificate2 certificate = new X509Certificate2("server.pfx", "Heck!nS3cure");
         static void Main(string[] args)
         {
-            //MakeCert();
+            //Initialization Functions
             LexiconLoader.Load();
             SQLConnection.AttemptSQLConnection();
             Login.GetEmailTemplate();
@@ -29,7 +24,6 @@ namespace SenimentAnalyzerServer
             tokenManagement.Start();
 
             //Start tcp server
-            //TcpListener server = new TcpListener(System.Net.IPAddress.Any, 25555);
             TcpListener server = new TcpListener(IPAddress.Loopback, 5300);
             server.Start();
 
@@ -57,12 +51,15 @@ namespace SenimentAnalyzerServer
                 // Get the client that is connecting to this server
                 TcpClient client = s.EndAcceptTcpClient(ar);
                 var stream = client.GetStream();
+
+                //Get the tcp stream and wrap it in an SSL stream
                 SslStream sslStream = new SslStream(stream, false);
                 var certificate = new X509Certificate2("server.pfx", "password");
                 sslStream.AuthenticateAsServer(certificate, false, System.Security.Authentication.SslProtocols.Default, false);
 
                 Console.WriteLine("Client connected succesfully");
-
+                
+                //Respond to clients message
                 Server.HandleMessage(sslStream);
 
                 // close the tcp connection
@@ -72,19 +69,6 @@ namespace SenimentAnalyzerServer
             {
                 Console.WriteLine(exception);
             }
-        }
-
-        static void MakeCert() //Create a self signed cert.
-        {
-            var ecdsa = ECDsa.Create(); // generate asymmetric key pair
-            var req = new CertificateRequest("cn=foobar", ecdsa, HashAlgorithmName.SHA256);
-            var cert = req.CreateSelfSigned(DateTimeOffset.Now, DateTimeOffset.Now.AddYears(5));
-
-            // Create PFX (PKCS #12) with private key
-            File.WriteAllBytes("server.pfx", cert.Export(X509ContentType.Pfx, "Heck!nS3cure"));
-
-            // Create Base 64 encoded CER (public key only)
-            File.WriteAllText("server.pfx", "-----BEGIN CERTIFICATE-----\r\n" + Convert.ToBase64String(cert.Export(X509ContentType.Cert), Base64FormattingOptions.InsertLineBreaks) + "\r\n-----END CERTIFICATE-----");
         }
     }
 }

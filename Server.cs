@@ -8,9 +8,9 @@ using System.Net.Security;
 
 namespace SenimentAnalyzerServer
 {
-    class Server //Comunicates lexicon updates and cached history.
+    class Server //Comunicates lexicon updates and cached history and authenticates logins.
     {
-        public static int bufferSize = 8192; //2KB buffer size for standard messages
+        public static int bufferSize = 8192; //8KB buffer size for standard messages
 
         //Recives incomming message and responds accordingly
         public static void HandleMessage(SslStream stream)
@@ -72,6 +72,7 @@ namespace SenimentAnalyzerServer
                 SendMessage(response,stream);
             }
         }
+        //Handle account messages (split off from HandleMessage for clarity )
         static string HandleAccountMessage(string[] message)
         {
             if (message[1] == "RST")
@@ -90,15 +91,19 @@ namespace SenimentAnalyzerServer
                 return CreateAccountResponse(message);
             }
         }
-        //Message Responses 
+
+        //Message Responses:
+
+        //Lexicons
+        //--------------------------------------------------------------------------------------------
         // LEX|VER|lexNum - Client request version number of lexicon
         static string LexiconVerResponse(string[] message)                 
         {
             int lexNum = int.Parse(message[2]);
             return LexiconLoader.listVers[lexNum].ToString();
         }
-
-        // LEX|REQ|lexNum - Client requseted contents of Lexicon
+        //Lexicon Update:
+        //LEX|REQ|lexNum - Client requseted contents of Lexicon
         static void LexiconReqResponse(string[] message, SslStream stream)
         {
             int lexNum = int.Parse(message[2]);
@@ -117,6 +122,8 @@ namespace SenimentAnalyzerServer
             }
         }
 
+        //Login Messages
+        //--------------------------------------------------------------------------------------------
         // LGN|userName|password - Login
         static string LoginResponse(string[] message)                      
         {
@@ -134,13 +141,8 @@ namespace SenimentAnalyzerServer
             }
 
         }
-
-        //SLT|username
-        static string RequestSalt(string[] message)
-        {
-            return Login.GetSaltFromPswd(message[0]);
-        
-        }
+        //Account Messages:
+        //--------------------------------------------------------------------------------------------
 
         //ACT|userName|password|name - create account
         static string CreateAccountResponse(string[] message)   
@@ -155,7 +157,6 @@ namespace SenimentAnalyzerServer
             }
 
         }
-
         //ACT|RST|REQ|username|email
         static string PassResetTokenReqResponse(string[] message)
         {
@@ -188,7 +189,7 @@ namespace SenimentAnalyzerServer
                 return "INVALID";
             }
         }
-
+        //Delete User Command
         //CMD|DEL|userName
         static string CommandResponse(string[] message)
         {
@@ -196,6 +197,8 @@ namespace SenimentAnalyzerServer
 
         }
 
+        //History Messages
+        //--------------------------------------------------------------------------------------------
         //HIS|asinID - request history for asinID
         static string HistoryRequestResponse(string[] message)
         {
@@ -238,6 +241,7 @@ namespace SenimentAnalyzerServer
         }
 
         //Message Functions using Ascii & UTF8 encoding.
+        //--------------------------------------------------------------------------------------------
         static void SendMessage(string message, SslStream stream)
         {
             message = "@" + message; //First character is split into another message for some reason in SSL
